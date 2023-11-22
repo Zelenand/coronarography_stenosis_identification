@@ -31,10 +31,14 @@ https://docs.google.com/document/d/1sMTnnQiP7YtuHqmUsG6wkOQKimmTDM1ZP52s2G5YF2g/
 
 ## Используемые методы
 
-Для решения задачи локализации стеноза на
+~~Для решения задачи локализации стеноза на
 основе данных ангиографии коронарных артерий
 используется подход машинного обучения, который хорошо зарекомендовал себя в сфере компьютерного зрения и обработки изображений. Для решения данной задачи предварительно решили использовать модель Faster-RCNN ResNet-50 из python-фреймворка pytorch:
-https://pytorch.org/vision/main/models/generated/torchvision.models.detection.fasterrcnn_resnet50_fpn.html
+https://pytorch.org/vision/main/models/generated/torchvision.models.detection.fasterrcnn_resnet50_fpn.html~~
+
+Была обучена модель YOLOv8
+
+
 
 ## Используемый датасет
 
