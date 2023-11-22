@@ -23,6 +23,11 @@ class Ui_MainWindow(object):
         self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_2.setGeometry(QtCore.QRect(520, 10, 131, 31))
         self.pushButton_2.setObjectName("pushButton_2")
+        self.checkBox = QtWidgets.QCheckBox(self.centralwidget)
+        self.checkBox.setGeometry(QtCore.QRect(10, 0, 500, 20))
+        self.checkBox.setText("Save results to /results")
+        self.textBox = QtWidgets.QLineEdit(self.centralwidget)
+        self.textBox.setGeometry(QtCore.QRect(10, 20, 500, 20))
         self.im = QtWidgets.QLabel()
         self.scrollArea = QtWidgets.QScrollArea(self.centralwidget)
         self.scrollArea.setGeometry(QtCore.QRect(10, 50, 771, 391))
@@ -48,4 +53,4 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.pushButton.setText(_translate("MainWindow", "Detect"))
-        self.pushButton_2.setText(_translate("MainWindow", "Import img"))
+        self.pushButton_2.setText(_translate("MainWindow", "Choose images"))
