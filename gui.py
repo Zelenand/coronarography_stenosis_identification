@@ -53,4 +53,4 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.pushButton.setText(_translate("MainWindow", "Detect"))
-        self.pushButton_2.setText(_translate("MainWindow", "Choose images"))
+        self.pushButton_2.setText(_translate("MainWindow", "Choose images/video"))
