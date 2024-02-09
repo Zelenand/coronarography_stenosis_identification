@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 492)
+        MainWindow.resize(800, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
@@ -28,13 +28,17 @@ class Ui_MainWindow(object):
         self.checkBox.setText("Save results to /results")
         self.textBox = QtWidgets.QLineEdit(self.centralwidget)
         self.textBox.setGeometry(QtCore.QRect(10, 20, 500, 20))
+
+        self.textBrowser = QtWidgets.QTextBrowser(self.centralwidget)
+        self.textBrowser.setGeometry(QtCore.QRect(10, 50, 771, 150))
+
         self.im = QtWidgets.QLabel()
         self.scrollArea = QtWidgets.QScrollArea(self.centralwidget)
-        self.scrollArea.setGeometry(QtCore.QRect(10, 50, 771, 391))
+        self.scrollArea.setGeometry(QtCore.QRect(10, 160, 771, 491))
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 769, 389))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 771, 389))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         MainWindow.setCentralWidget(self.centralwidget)
