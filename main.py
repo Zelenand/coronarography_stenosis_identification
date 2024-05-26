@@ -2,6 +2,9 @@ import os
 import shutil
 import sys
 
+import cv2
+import numpy as np
+from scipy.spatial import distance
 from PIL import Image
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QCoreApplication
@@ -15,6 +18,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QVBoxLayout, QLabel, \
     QSlider, QStyle, QSizePolicy, QFileDialog
 from ultralytics import YOLO
+import pathlib
 
 import gui
 
@@ -151,6 +155,7 @@ class MainWindow(QMainWindow, gui.Ui_MainWindow):
         self.setFixedSize(self.size())
 
         self.pushButton_2.clicked.connect(self.choose_image)
+        self.pushButton_3.clicked.connect(self.choose_dir)
         self.pushButton.clicked.connect(self.detect_and_show)
         self.textBox.textChanged.connect(self.img_list_change)
 
@@ -176,16 +181,74 @@ class MainWindow(QMainWindow, gui.Ui_MainWindow):
         finally:
             pass
 
+    def choose_dir(self):
+        try:
+            exts = [".png", ".jpg", ".bnp", ".mp4", ".avi"]
+            #result = list(pathlib.Path(QFileDialog.getExistingDirectory(self, "Выбрать папку", ".")).rglob('*'))
+            result = [str(p).replace("\\", "/") for p in pathlib.Path(QFileDialog.getExistingDirectory(self,"Выбрать папку",".")).rglob('*') if p.suffix in exts]
+            res = result[0]
+            self.img_list = result
+            self.textBox.setText(';'.join(self.img_list))
+        finally:
+            pass
+
     def img_list_change(self):
         self.img_list = self.textBox.text().split(";")
 
+    def calc_stenosis_degree(self, image):
+        detected_box = cv2.medianBlur(image, 9)
+        ret2, th2 = cv2.threshold(detected_box, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        thresh = 128
+        th2 = cv2.threshold(th2, thresh, 255, cv2.THRESH_BINARY)[1]
+        th3 = cv2.Canny(th2, 50, 200)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (33, 33))
+        closed = cv2.morphologyEx(th3, cv2.MORPH_CLOSE, kernel)
+        contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contour = max(contours, key=cv2.contourArea)
+        image_countoured = image.copy()
+        cv2.drawContours(image_countoured, [contour], -1, (0, 255, 0), 2)
+        closed_copy = closed.copy()
+        skel = np.zeros(closed_copy.shape, np.uint8)
+        element = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+        while True:
+            open = cv2.morphologyEx(closed_copy, cv2.MORPH_OPEN, element)
+            temp = cv2.subtract(closed_copy, open)
+            eroded = cv2.erode(closed_copy, element)
+            skel = cv2.bitwise_or(skel, temp)
+            closed_copy = eroded.copy()
+
+            if cv2.countNonZero(closed_copy) == 0:
+                break
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        skel = cv2.morphologyEx(skel, cv2.MORPH_CLOSE, kernel)
+        skel_contours, _ = cv2.findContours(skel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        skel_contour = max(skel_contours, key=cv2.contourArea)
+
+        x, y = image.shape
+        skel_points = [i[0] for i in skel_contour]
+        contour_points = [i[0] for i in contour]
+        # Найдем ближайшие точки контура для каждой точки скелета
+        closest_points = []
+        for skel_point in skel_points:
+            dist = [distance.euclidean(skel_point, p) for p in contour_points]
+            closest_point = contour_points[np.argmin(dist)]
+            closest_points.append(closest_point)
+
+        # Вычислим расстояния между точками скелета и их ближайшими точками на контуре
+        distances = [distance.euclidean(skel_points[i], closest_points[i]) for i in range(len(skel_points))]
+
+        narrowest_part = min(distances)
+        widest_part = max(distances)
+
+        return (100 - (narrowest_part / widest_part * 100)) // 0.1 / 10
 
     def detect_and_show(self):
         layout = QtWidgets.QGridLayout()
         img_labels = []
         try:
             for img in self.img_list:
-                self.textBrowser.append("* Processing " + img + " *")
+                self.textBrowser.append(img)
                 QCoreApplication.processEvents()
                 if img[len(img)-3:len(img)] in ["avi", "mp4"]:
                     path = os.path.dirname(os.path.abspath(__file__))
@@ -204,9 +267,30 @@ class MainWindow(QMainWindow, gui.Ui_MainWindow):
                 else:
                     image = Image.open(img)
                     results = self.model.predict(source=image)
+                    image = Image.open(img).convert('L')
+                    if len(results):
+                        detected_box = image.crop((int(results[0].boxes.xyxy[0][0]) - 15,
+                                                   int(results[0].boxes.xyxy[0][1]) - 15,
+                                                   int(results[0].boxes.xyxy[0][2]) + 15,
+                                                   int(results[0].boxes.xyxy[0][3]) + 15))
+                        detected_box = np.array(detected_box.convert('RGB'))[:, :, ::-1].copy()
+                        detected_box = cv2.cvtColor(detected_box, cv2.COLOR_BGR2GRAY)
+                        detected_box = cv2.resize(detected_box, (100, 100))
+                        detected_box = cv2.medianBlur(detected_box, 9)
+                        stenosis_degree = self.calc_stenosis_degree(detected_box)
+                        print("Степень выраженности стеноза: " + str(stenosis_degree) + "%")
                     Image.fromarray(results[0].plot()).save('temp_image.png')
                     if self.checkBox.isChecked():
-                        shutil.copyfile('temp_image.png', "results/" + ''.join(img.split('/')[-1]) + "_DETECTED.png")
+                        print("results/" + '/'.join(img.split('/')[1:]).replace(" ", "") + "_DETECTED.png")
+                        dirname = "results/" + '/'.join(img.split('/')[1:][:-1])
+                        print(dirname)
+                        dirname = pathlib.Path(dirname)
+                        dirname.mkdir(parents=True, exist_ok=True)
+                        try:
+                            shutil.copyfile('temp_image.png', "results/" + '/'.join(img.split('/')[1:]) + "_DETECTED.png")
+                        except Exception as e:
+                            print(e)
+                        print("results/" + '/'.join(img.split('/')[1:]).replace(" ", "") + "_DETECTED.png")
                     image = QPixmap('temp_image.png')
                     img_labels.append(QtWidgets.QLabel())
                     img_labels[-1].setPixmap(image)
